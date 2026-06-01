@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>VAS Exemption/ Extension Tracker Collator</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Amazon+Ember:wght@300;400;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --amz-navy:#0F1111;
+  --amz-orange:#FF9900;
+  --amz-orange-dark:#E47911;
+  --amz-blue:#146EB4;
+  --amz-light:#F3F3F3;
+  --amz-white:#FFFFFF;
+  --amz-border:#D5D9D9;
+  --amz-text:#0F1111;
+  --amz-muted:#565959;
+  --amz-green:#067D62;
+  --amz-red:#CC0C39;
+}
+body{
+  font-family:'Amazon Ember','Arial',sans-serif;
+  background:linear-gradient(160deg,#0d1b2a 0%,#1a2e4a 40%,#0f2233 70%,#1a1a2e 100%);
+  background-attachment:fixed;
+  min-height:100vh;
+  color:var(--amz-text);
+}
+
+/* ── TOP NAV ── */
+.nav{
+  background:var(--amz-navy);
+  padding:0 24px;
+  height:60px;
+  display:flex;
+  align-items:center;
+  gap:16px;
+  position:sticky;
+  top:0;
+  z-index:100;
+}
+.nav-logo{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  text-decoration:none;
+}
+.nav-logo svg{fill:var(--amz-orange)}
+.nav-title{
+  color:var(--amz-white);
+  font-size:1.1rem;
+  font-weight:700;
+  letter-spacing:0.3px;
+}
+.nav-badge{
+  background:var(--amz-orange);
+  color:var(--amz-navy);
+  font-size:0.7rem;
+  font-weight:700;
+  padding:2px 8px;
+  border-radius:12px;
+  letter-spacing:0.5px;
+}
+
+/* ── HERO ── */
+.hero{
+  background:linear-gradient(135deg,#0F1111 0%,#1a2a3a 60%,#0F1111 100%);
+  padding:48px 24px 40px;
+  text-align:center;
+  border-bottom:3px solid var(--amz-orange);
+}
+.hero h1{
+  color:var(--amz-white);
+  font-size:2rem;
+  font-weight:700;
+  margin-bottom:10px;
+  letter-spacing:-0.5px;
+}
+.hero h1 span{color:var(--amz-orange)}
+.hero p{
+  color:#aab4be;
+  font-size:1rem;
+  max-width:520px;
+  margin:0 auto;
+  line-height:1.6;
+}
+
+/* ── MAIN LAYOUT ── */
+.main{
+  max-width:960px;
+  margin:32px auto;
+  padding:0 20px;
+  display:flex;
+  flex-direction:column;
+  gap:20px;
+}
+
+/* ── CARD ── */
+.card{
+  background:var(--amz-white);
+  border:1px solid var(--amz-border);
+  border-radius:8px;
+  box-shadow:0 2px 5px rgba(15,17,17,.08);
+  overflow:hidden;
+}
+.card-header{
+  background:var(--amz-light);
+  border-bottom:1px solid var(--amz-border);
+  padding:14px 20px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.card-header h2{
+  font-size:1rem;
+  font-weight:700;
+  color:var(--amz-text);
+}
+.card-header .step-badge{
+  background:var(--amz-orange);
+  color:var(--amz-navy);
+  font-size:0.75rem;
+  font-weight:700;
+  width:24px;height:24px;
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.card-body{padding:20px}
+
+/* ── DROP ZONE ── */
+#dropzone{
+  border:2px dashed var(--amz-border);
+  border-radius:8px;
+  padding:48px 24px;
+  text-align:center;
+  cursor:pointer;
+  transition:all .2s;
+  background:#fafafa;
+}
+#dropzone:hover,#dropzone.dragover{
+  border-color:var(--amz-orange);
+  background:#fff8f0;
+}
+#dropzone .dz-icon{
+  width:56px;height:56px;
+  background:var(--amz-orange);
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 16px;
+}
+#dropzone .dz-icon svg{stroke:var(--amz-navy)}
+#dropzone h3{font-size:1rem;font-weight:700;color:var(--amz-text);margin-bottom:6px}
+#dropzone p{font-size:0.85rem;color:var(--amz-muted)}
+#dropzone .browse-link{color:var(--amz-blue);text-decoration:underline;cursor:pointer}
+#fileInput{display:none}
+
+/* ── FILE LIST ── */
+#fileList{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+.file-item{
+  display:flex;align-items:center;gap:12px;
+  background:var(--amz-light);
+  border:1px solid var(--amz-border);
+  border-radius:6px;
+  padding:10px 14px;
+  font-size:0.875rem;
+}
+.file-item .fi-icon{
+  width:32px;height:32px;
+  background:#e8f4e8;
+  border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.file-item .fi-name{flex:1;font-weight:700;color:var(--amz-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-item .fi-badge{
+  font-size:0.72rem;font-weight:700;
+  padding:3px 10px;border-radius:12px;white-space:nowrap;
+}
+.badge-ok{background:#e8f5e9;color:var(--amz-green);border:1px solid #c8e6c9}
+.badge-warn{background:#fff8e1;color:#f57f17;border:1px solid #ffe082}
+.badge-err{background:#fce4ec;color:var(--amz-red);border:1px solid #f8bbd0}
+.fi-remove{
+  background:none;border:none;cursor:pointer;
+  color:var(--amz-muted);font-size:1.1rem;padding:0 4px;
+  transition:color .15s;
+}
+.fi-remove:hover{color:var(--amz-red)}
+
+/* ── COLUMN SELECTOR ── */
+.col-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+  gap:8px;
+}
+.col-row{
+  display:flex;align-items:center;gap:8px;
+  background:var(--amz-light);
+  border:2px solid var(--amz-border);
+  border-radius:6px;
+  padding:8px 12px;
+  cursor:pointer;
+  transition:all .2s;
+}
+.col-row:hover{border-color:var(--amz-orange);background:#fff8f0}
+.col-row.selected{
+  background:#fff3e0;
+  border-color:var(--amz-orange);
+  box-shadow:0 0 0 3px rgba(255,153,0,.15);
+}
+.col-row.selected label{color:var(--amz-orange-dark);font-weight:700}
+.col-row input[type=checkbox]{accent-color:var(--amz-orange);width:15px;height:15px;cursor:pointer}
+.col-row label{font-size:0.82rem;color:var(--amz-text);cursor:pointer;line-height:1.3}
+
+/* ── TIME SAVING BANNER ── */
+.savings-banner{
+  background:linear-gradient(135deg,#0F1111 0%,#1a2a3a 100%);
+  border-bottom:3px solid var(--amz-orange);
+  padding:20px 24px;
+}
+.savings-inner{
+  max-width:960px;
+  margin:0 auto;
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:16px;
+}
+.saving-item{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+  padding:16px 12px;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,153,0,.3);
+  border-radius:10px;
+  transition:all .2s;
+}
+.saving-item:hover{background:rgba(255,153,0,.1);border-color:var(--amz-orange)}
+.saving-icon{font-size:1.8rem;margin-bottom:8px}
+.saving-val{
+  font-size:1.6rem;font-weight:700;
+  color:var(--amz-orange);
+  line-height:1;margin-bottom:4px;
+}
+.saving-lbl{font-size:0.72rem;color:#aab4be;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;line-height:1.4}
+.saving-sub{font-size:0.68rem;color:#6b7a8d;margin-top:3px}
+
+/* ── CARD HEADERS COLOURED ── */
+.card-header-blue{background:#0F1111;border-bottom:2px solid var(--amz-orange)}
+.card-header-blue h2{color:var(--amz-orange)}
+.card-header-blue .step-badge{background:var(--amz-orange);color:#0F1111}
+
+.card-header-purple{background:#0F1111;border-bottom:2px solid var(--amz-orange)}
+.card-header-purple h2{color:var(--amz-orange)}
+.card-header-purple .step-badge{background:var(--amz-orange);color:#0F1111}
+
+.card-header-teal{background:#0F1111;border-bottom:2px solid var(--amz-orange)}
+.card-header-teal h2{color:var(--amz-orange)}
+.card-header-teal .step-badge{background:var(--amz-orange);color:#0F1111}
+
+.card-header-green{background:#0F1111;border-bottom:2px solid var(--amz-orange)}
+.card-header-green h2{color:var(--amz-orange)}
+.btn-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:20px}
+.btn{
+  padding:10px 24px;border-radius:8px;border:none;
+  font-family:inherit;font-size:0.9rem;font-weight:700;
+  cursor:pointer;transition:all .2s;
+  display:flex;align-items:center;gap:8px;
+  letter-spacing:0.3px;
+}
+.btn-primary{
+  background:linear-gradient(135deg,#c8f5c8,#a8e6a8);
+  color:#1a5c1a;
+  border:1px solid #7acc7a;
+  box-shadow:0 3px 10px rgba(100,200,100,.3);
+}
+.btn-primary:hover{
+  background:linear-gradient(135deg,#a8e6a8,#7acc7a);
+  box-shadow:0 4px 14px rgba(100,200,100,.45);
+  transform:translateY(-1px);
+}
+.btn-primary:disabled{background:#e8e8e8;color:#999;border-color:#ccc;box-shadow:none;cursor:not-allowed;transform:none}
+.btn-secondary{
+  background:linear-gradient(135deg,#ffe0b2,#ffcc80);
+  color:#bf5000;
+  border:1px solid #ffb74d;
+  box-shadow:0 3px 10px rgba(255,160,0,.3);
+}
+.btn-secondary:hover{
+  background:linear-gradient(135deg,#ffcc80,#ffb74d);
+  box-shadow:0 4px 14px rgba(255,160,0,.45);
+  transform:translateY(-1px);
+}
+.btn-download{
+  background:linear-gradient(135deg,#067D62,#0a9e7c);
+  color:white;
+  border:1px solid #045a47;
+  box-shadow:0 3px 10px rgba(6,125,98,.4);
+}
+.btn-download:hover{
+  background:linear-gradient(135deg,#0a9e7c,#0dbf96);
+  box-shadow:0 4px 14px rgba(6,125,98,.5);
+  transform:translateY(-1px);
+}
+
+/* ── STATS ── */
+.stats-bar{
+  display:none;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
+}
+.stat-card{
+  background:var(--amz-white);
+  border:1px solid var(--amz-border);
+  border-radius:8px;
+  padding:16px 20px;
+  text-align:center;
+  border-top:3px solid var(--amz-orange);
+}
+.stat-val{font-size:2rem;font-weight:700;color:var(--amz-orange);line-height:1}
+.stat-lbl{font-size:0.78rem;color:var(--amz-muted);margin-top:4px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px}
+
+/* ── LOG ── */
+#logBox{
+  background:#0F1111;
+  color:#7dcea0;
+  border-radius:6px;
+  padding:14px 16px;
+  font-family:'Courier New',monospace;
+  font-size:0.78rem;
+  max-height:140px;
+  overflow-y:auto;
+  display:none;
+  margin-top:16px;
+}
+.log-line{margin-bottom:3px;line-height:1.5}
+.log-warn{color:#FFD814}
+.log-err{color:#ff6b6b}
+.log-ok{color:#52c41a}
+
+/* ── PREVIEW TABLE ── */
+.table-wrap{overflow-x:auto;border-radius:6px;border:1px solid var(--amz-border)}
+table{width:100%;border-collapse:collapse;font-size:0.78rem}
+thead tr{background:var(--amz-navy)}
+thead th{
+  padding:10px 14px;text-align:left;
+  color:var(--amz-white);font-weight:700;
+  white-space:nowrap;letter-spacing:0.3px;
+}
+thead th:first-child{border-left:3px solid var(--amz-orange)}
+tbody tr:nth-child(even){background:#fafafa}
+tbody tr:hover{background:#fff8f0}
+tbody td{
+  padding:8px 14px;color:var(--amz-text);
+  white-space:nowrap;max-width:200px;
+  overflow:hidden;text-overflow:ellipsis;
+  border-bottom:1px solid #f0f0f0;
+}
+.td-source{color:var(--amz-muted);font-size:0.72rem;font-style:italic}
+
+/* ── FOOTER ── */
+.footer{
+  text-align:center;
+  padding:24px;
+  color:var(--amz-muted);
+  font-size:0.8rem;
+  border-top:1px solid var(--amz-border);
+  margin-top:8px;
+}
+.footer span{color:var(--amz-orange);font-weight:700}
+
+/* ── VALIDATION CARD ── */
+.card-header-red{background:#0F1111;border-bottom:2px solid var(--amz-red)}
+.card-header-red h2{color:var(--amz-red)}
+.card-header-red .step-badge{background:var(--amz-red);color:#fff}
+
+.card-header-amber{background:#0F1111;border-bottom:2px solid #f59e0b}
+.card-header-amber h2{color:#f59e0b}
+.card-header-amber .step-badge{background:#f59e0b;color:#0F1111}
+
+.validation-summary{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:12px;
+  margin-bottom:20px;
+}
+.val-stat{
+  text-align:center;
+  padding:16px 12px;
+  border-radius:8px;
+  border:1px solid var(--amz-border);
+}
+.val-stat.val-ok{background:#e8f5e9;border-color:#c8e6c9}
+.val-stat.val-warn{background:#fff8e1;border-color:#ffe082}
+.val-stat.val-err{background:#fce4ec;border-color:#f8bbd0}
+.val-stat .val-num{font-size:1.8rem;font-weight:700;line-height:1}
+.val-stat.val-ok .val-num{color:var(--amz-green)}
+.val-stat.val-warn .val-num{color:#f57f17}
+.val-stat.val-err .val-num{color:var(--amz-red)}
+.val-stat .val-label{font-size:0.72rem;color:var(--amz-muted);font-weight:700;text-transform:uppercase;margin-top:4px}
+
+.owner-issues{margin-top:16px;display:flex;flex-direction:column;gap:12px}
+.owner-card{
+  background:var(--amz-light);
+  border:1px solid var(--amz-border);
+  border-radius:8px;
+  overflow:hidden;
+}
+.owner-card-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px 16px;
+  background:var(--amz-white);
+  border-bottom:1px solid var(--amz-border);
+  cursor:pointer;
+}
+.owner-card-header:hover{background:#fff8f0}
+.owner-name{font-weight:700;font-size:0.9rem;color:var(--amz-text)}
+.owner-badges{display:flex;gap:6px;align-items:center}
+.owner-badge{
+  font-size:0.7rem;font-weight:700;
+  padding:2px 8px;border-radius:10px;
+}
+.owner-badge-err{background:#fce4ec;color:var(--amz-red);border:1px solid #f8bbd0}
+.owner-badge-warn{background:#fff8e1;color:#f57f17;border:1px solid #ffe082}
+.owner-detail{padding:12px 16px;font-size:0.82rem;display:none}
+.owner-detail.open{display:block}
+.issue-table{width:100%;border-collapse:collapse;font-size:0.78rem;margin-top:8px}
+.issue-table th{
+  background:var(--amz-navy);color:var(--amz-white);
+  padding:6px 10px;text-align:left;font-size:0.72rem;
+  text-transform:uppercase;letter-spacing:0.5px;
+}
+.issue-table td{
+  padding:6px 10px;border-bottom:1px solid #eee;
+  color:var(--amz-text);
+}
+.issue-table tr:hover{background:#fff8f0}
+.issue-type-missing{color:var(--amz-red);font-weight:700}
+.issue-type-format{color:#f57f17;font-weight:700}
+
+.btn-email{
+  background:linear-gradient(135deg,#146EB4,#1a8ad4);
+  color:white;
+  border:1px solid #0f5a94;
+  box-shadow:0 3px 10px rgba(20,110,180,.3);
+  margin-top:8px;
+}
+.btn-email:hover{
+  background:linear-gradient(135deg,#1a8ad4,#2196f3);
+  box-shadow:0 4px 14px rgba(20,110,180,.45);
+  transform:translateY(-1px);
+}
+.btn-email-all{
+  background:linear-gradient(135deg,#CC0C39,#e53e6b);
+  color:white;
+  border:1px solid #a00a2e;
+  box-shadow:0 3px 10px rgba(204,12,57,.3);
+}
+.btn-email-all:hover{
+  background:linear-gradient(135deg,#e53e6b,#ff6b8a);
+  box-shadow:0 4px 14px rgba(204,12,57,.45);
+  transform:translateY(-1px);
+}
+
+.email-config{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:16px;
+  flex-wrap:wrap;
+}
+.email-config label{font-size:0.82rem;font-weight:700;color:var(--amz-text)}
+.email-config select,.email-config input{
+  padding:6px 10px;
+  border:1px solid var(--amz-border);
+  border-radius:6px;
+  font-family:inherit;
+  font-size:0.82rem;
+}
+.email-config select{min-width:140px}
+.email-config input{flex:1;min-width:200px}
+
+.no-issues-banner{
+  text-align:center;
+  padding:32px 20px;
+  color:var(--amz-green);
+  font-weight:700;
+  font-size:1rem;
+}
+.no-issues-banner .check-icon{
+  font-size:2.5rem;
+  margin-bottom:8px;
+}
+
+@media(max-width:600px){
+  .hero h1{font-size:1.4rem}
+  .stats-bar{grid-template-columns:1fr}
+  .col-grid{grid-template-columns:1fr}
+  .savings-inner{grid-template-columns:repeat(2,1fr)}
+  .validation-summary{grid-template-columns:1fr}
+}
+
+/* ── MODE SELECTOR ── */
+.mode-option{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  padding:14px 20px;
+  border:2px solid var(--amz-border);
+  border-radius:8px;
+  cursor:pointer;
+  transition:all .2s;
+  flex:1;
+  min-width:200px;
+}
+.mode-option:hover{border-color:var(--amz-orange);background:#fff8f0}
+.mode-option.selected{
+  border-color:var(--amz-orange);
+  background:#fff3e0;
+  box-shadow:0 0 0 3px rgba(255,153,0,.15);
+}
+.mode-option input[type=radio]{display:none}
+.mode-label{font-size:0.95rem;font-weight:700;color:var(--amz-text)}
+.mode-desc{font-size:0.78rem;color:var(--amz-muted)}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <a class="nav-logo" href="#">
+    <svg width="28" height="28" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    <span class="nav-title">VAS Exemption/ Extension Tracker Collator</span>
+  </a>
+  <span class="nav-badge">INTERNAL TOOL</span>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <h1>Collate Exemption/ Extension Files <span>Instantly</span></h1>
+  <p>Upload multiple VAS Exemption Tracker files and merge them into one clean, standardized Excel file in seconds.</p>
+</div>
+
+<!-- TIME SAVING BANNER -->
+<div class="savings-banner">
+  <div class="savings-inner">
+    <div class="saving-item">
+      <div class="saving-icon">⏱️</div>
+      <div class="saving-val">25 min</div>
+      <div class="saving-lbl">Saved per collation</div>
+      <div class="saving-sub">vs manual copy-paste</div>
+    </div>
+    <div class="saving-item">
+      <div class="saving-icon">📅</div>
+      <div class="saving-val" id="weeklySaving">~2 hrs</div>
+      <div class="saving-lbl">Saved per week</div>
+      <div class="saving-sub">across the team</div>
+    </div>
+    <div class="saving-item">
+      <div class="saving-icon">🚫</div>
+      <div class="saving-val">0</div>
+      <div class="saving-lbl">Manual errors</div>
+      <div class="saving-sub">auto-skips sample rows</div>
+    </div>
+    <div class="saving-item">
+      <div class="saving-icon">⚡</div>
+      <div class="saving-val">&lt; 5s</div>
+      <div class="saving-lbl">Collation time</div>
+      <div class="saving-sub">any number of files</div>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- MODE SELECTOR -->
+  <div class="card">
+    <div class="card-header" style="background:#0F1111;border-bottom:2px solid var(--amz-orange)">
+      <h2 style="color:var(--amz-orange)">Select Collation Mode</h2>
+    </div>
+    <div class="card-body">
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <label class="mode-option selected" id="mode-exemption" onclick="setMode('exemption')">
+          <input type="radio" name="collateMode" value="exemption" checked/>
+          <span class="mode-label">📋 Exemption Tracker</span>
+          <span class="mode-desc">Reads the first sheet from each file</span>
+        </label>
+        <label class="mode-option" id="mode-extension" onclick="setMode('extension')">
+          <input type="radio" name="collateMode" value="extension"/>
+          <span class="mode-label">📑 Extension Tracker</span>
+          <span class="mode-desc">Reads only the "Tracker" sheet from each file (skips Data sheet)</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 1: UPLOAD -->
+  <div class="card">
+    <div class="card-header card-header-blue">
+      <div class="step-badge">1</div>
+      <h2>Upload Tracker Files</h2>
+    </div>
+    <div class="card-body">
+      <div id="dropzone" onclick="document.getElementById('fileInput').click()">
+        <div class="dz-icon">
+          <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+          </svg>
+        </div>
+        <h3>Drag &amp; drop your Excel files here</h3>
+        <p>or <span class="browse-link">browse to upload</span> &nbsp;·&nbsp; Supports .xlsx and .xls</p>
+      </div>
+      <input type="file" id="fileInput" multiple accept=".xlsx,.xls"/>
+      <div id="fileList"></div>
+    </div>
+  </div>
+
+  <!-- STEP 2: COLUMNS -->
+  <div class="card" id="colCard" style="display:none">
+    <div class="card-header card-header-purple">
+      <div class="step-badge">2</div>
+      <h2>Select Columns to Include</h2>
+    </div>
+    <div class="card-body">
+      <div class="col-grid" id="mappingGrid"></div>
+    </div>
+  </div>
+
+  <!-- STEP 3: VALIDATE & NOTIFY -->
+  <div class="card" id="validateCard" style="display:none">
+    <div class="card-header card-header-amber">
+      <div class="step-badge">3</div>
+      <h2>Validate &amp; Notify Owners</h2>
+    </div>
+    <div class="card-body">
+      <div class="btn-row" style="margin-bottom:16px">
+        <button class="btn btn-secondary" onclick="runValidation()">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Run Validation
+        </button>
+      </div>
+      <div id="validationResults"></div>
+    </div>
+  </div>
+
+  <!-- STEP 4: COLLATE -->
+  <div class="card">
+    <div class="card-header card-header-teal">
+      <div class="step-badge">4</div>
+      <h2>Collate &amp; Download</h2>
+    </div>
+    <div class="card-body">
+      <div class="btn-row">
+        <button class="btn btn-primary" id="collateBtn" disabled onclick="collate()">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          Collate Files
+        </button>
+        <button class="btn btn-secondary" onclick="clearAll()">Clear All</button>
+      </div>
+      <div id="logBox"></div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-bar" id="statsBar">
+    <div class="stat-card"><div class="stat-val" id="statFiles">0</div><div class="stat-lbl">Files Merged</div></div>
+    <div class="stat-card"><div class="stat-val" id="statRows">0</div><div class="stat-lbl">Total Rows</div></div>
+    <div class="stat-card"><div class="stat-val" id="statCols">0</div><div class="stat-lbl">Columns</div></div>
+  </div>
+
+  <!-- PREVIEW -->
+  <div class="card" id="previewCard" style="display:none">
+    <div class="card-header card-header-green">
+      <div class="step-badge" style="background:var(--amz-orange);color:#0F1111">✓</div>
+      <h2>Preview — First 20 Rows</h2>
+    </div>
+    <div class="card-body">
+      <div class="table-wrap"><table id="previewTable"></table></div>
+      <div class="btn-row" style="margin-top:16px">
+        <button class="btn btn-download" onclick="downloadFile()">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M12 3v13.5m0 0l-4.5-4.5m4.5 4.5l4.5-4.5"/></svg>
+          Download Collated Excel
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">Built for the VAS Team &nbsp;·&nbsp; Powered by <span>SheetJS</span> &nbsp;·&nbsp; No data leaves your browser</div>
+
+<script>
+let uploadedFiles=[], collatedData=[], finalHeaders=[];
+let collateMode = 'exemption'; // 'exemption' or 'extension'
+
+const DEFAULT_HEADERS=["Date","merchant_customer_id","POE","Trigger VRN","is_safelisted TRUE/FALSE","Program details","SIM ID/ Paragon Task ID","owner","Outcome","Use Case (Reason)","Comments"];
+
+function setMode(mode) {
+  collateMode = mode;
+  document.getElementById('mode-exemption').classList.toggle('selected', mode === 'exemption');
+  document.getElementById('mode-extension').classList.toggle('selected', mode === 'extension');
+  // Clear files when switching mode since sheet logic differs
+  clearAll();
+}
+
+// Drop zone
+const dz=document.getElementById('dropzone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dragover')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('dragover'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dragover');handleFiles(e.dataTransfer.files)});
+document.getElementById('fileInput').addEventListener('change',e=>{handleFiles(e.target.files);e.target.value=''});
+
+function handleFiles(list){
+  Array.from(list).forEach(f=>{
+    if(uploadedFiles.find(u=>u.name===f.name)){log(`Skipped duplicate: ${f.name}`,'warn');return}
+    const r=new FileReader();
+    r.onload=e=>parseFile(f.name,e.target.result);
+    r.readAsArrayBuffer(f);
+  });
+}
+
+function parseFile(name,buffer){
+  try{
+    const wb=XLSX.read(buffer,{type:'array',cellDates:false,cellStyles:true,raw:false});
+
+    // Select the correct sheet based on mode
+    let ws, sheetName;
+    if (collateMode === 'extension') {
+      // Look for a sheet named "Tracker" (case-insensitive)
+      sheetName = wb.SheetNames.find(s => s.toLowerCase().includes('tracker'));
+      if (!sheetName) {
+        log(`${name}: No "Tracker" sheet found (sheets: ${wb.SheetNames.join(', ')}). Skipping.`, 'err');
+        addFileItem(name, 0, 'err', 'No Tracker sheet');
+        return;
+      }
+      ws = wb.Sheets[sheetName];
+      log(`${name}: Using sheet "${sheetName}"`, 'ok');
+    } else {
+      sheetName = wb.SheetNames[0];
+      ws = wb.Sheets[sheetName];
+    }
+
+    const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',rawNumbers:false});
+    if(raw.length<2){log(`${name}: No data found`,'warn');addFileItem(name,0,'warn','Empty');return}
+
+    const headers=raw[0].map(h=>String(h).trim());
+
+    // Detect yellow sample rows
+    const skipped=new Set();
+    const range=XLSX.utils.decode_range(ws['!ref']||'A1');
+    for(let R=range.s.r+1;R<=range.e.r;R++){
+      for(let C=range.s.c;C<=range.e.c;C++){
+        const cell=ws[XLSX.utils.encode_cell({r:R,c:C})];
+        if(!cell||!cell.s) continue;
+        const fill=cell.s.fgColor||(cell.s.fill&&cell.s.fill.fgColor);
+        if(!fill) continue;
+        const rgb=fill.rgb||'';
+        if(rgb.toUpperCase()==='FFFF00'||fill.indexed===65535||fill.indexed===27){skipped.add(R);break}
+      }
+    }
+
+    const rows=raw.slice(1).filter((r,i)=>{
+      if(skipped.has(i+1)) return false;
+      // Include row if ANY cell in the row has a value — never drop based on date format
+      return r.some(c => c !== '' && c !== null && c !== undefined);
+    });
+
+    // Log rows that have SIM ID but no date so user is aware
+    const simIdx = headers.findIndex(h => h.toLowerCase().includes('sim') || h.toLowerCase().includes('paragon'));
+    const dateIdx = headers.findIndex(h => h.toLowerCase() === 'date');
+    let noDateCount = 0;
+    rows.forEach(r => {
+      const hasSim = simIdx > -1 && r[simIdx] !== '' && r[simIdx] !== null && r[simIdx] !== undefined;
+      const hasDate = dateIdx > -1 && r[dateIdx] !== '' && r[dateIdx] !== null && r[dateIdx] !== undefined;
+      if(hasSim && !hasDate) noDateCount++;
+    });
+    if(noDateCount > 0) log(`${name}: ${noDateCount} row(s) included with SIM ID but no date — all captured`, 'warn');
+
+    if(skipped.size>0) log(`${name}: Skipped ${skipped.size} sample row(s)`,'warn');
+    uploadedFiles.push({name,headers,rows});
+    log(`Loaded: ${name} — ${rows.length} rows`,'ok');
+    addFileItem(name,rows.length,'ok',`${rows.length} rows`);
+    refreshCols(headers);
+    updateBtn();
+  }catch(e){
+    log(`Error: ${name} — ${e.message}`,'err');
+    addFileItem(name,0,'err','Error');
+  }
+}
+
+function addFileItem(name,rows,status,badge){
+  const list=document.getElementById('fileList');
+  const d=document.createElement('div');
+  d.className='file-item';
+  d.id=`fi-${CSS.escape(name)}`;
+  d.innerHTML=`
+    <div class="fi-icon"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#067D62" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
+    <span class="fi-name">${name}</span>
+    <span class="fi-badge badge-${status}">${badge}</span>
+    <button class="fi-remove" title="Remove" onclick="removeFile('${name.replace(/'/g,"\\'")}')">✕</button>`;
+  list.appendChild(d);
+}
+
+function removeFile(name){
+  uploadedFiles=uploadedFiles.filter(f=>f.name!==name);
+  const el=document.getElementById(`fi-${CSS.escape(name)}`);
+  if(el) el.remove();
+  rebuildCols();
+  updateBtn();
+  log(`Removed: ${name}`);
+}
+
+function refreshCols(newHeaders){
+  const grid=document.getElementById('mappingGrid');
+  const existing=Array.from(grid.querySelectorAll('input')).map(i=>i.value);
+  newHeaders.forEach(h=>{
+    if(!h||existing.includes(h)) return;
+    const isDefault=DEFAULT_HEADERS.includes(h);
+    const row=document.createElement('div');
+    row.className='col-row'+(isDefault?' selected':'');
+    row.innerHTML=`<input type="checkbox" id="col-${CSS.escape(h)}" value="${h}" ${isDefault?'checked':''}><label for="col-${CSS.escape(h)}">${h}</label>`;
+    // Toggle selected class on click
+    row.addEventListener('click',()=>{
+      const cb=row.querySelector('input');
+      setTimeout(()=>{
+        if(cb.checked) row.classList.add('selected');
+        else row.classList.remove('selected');
+      },0);
+    });
+    grid.appendChild(row);
+  });
+  document.getElementById('colCard').style.display='block';
+}
+
+function rebuildCols(){
+  document.getElementById('mappingGrid').innerHTML='';
+  uploadedFiles.forEach(f=>refreshCols(f.headers));
+  if(!uploadedFiles.length) document.getElementById('colCard').style.display='none';
+}
+
+function getSelectedCols(){
+  return Array.from(document.querySelectorAll('#mappingGrid input:checked')).map(i=>i.value);
+}
+
+function collate(){
+  const cols=getSelectedCols();
+  if(!cols.length){alert('Please select at least one column.');return}
+  collatedData=[];
+  finalHeaders=[...cols,'Source File'];
+  let total=0;
+  uploadedFiles.forEach(file=>{
+    const idxs=cols.map(c=>file.headers.indexOf(c));
+    file.rows.forEach(row=>{
+      const newRow=idxs.map((idx)=>{
+        if(idx===-1) return null;
+        const v=row[idx];
+        if(v===''||v===null||v===undefined) return null;
+        // Pass through as-is — no formatting, no conversion
+        return String(v).trim();
+      });
+      // Include if any mapped cell has a value (never drop a row silently)
+      if(newRow.some(c => c !== null && c !== '')) {
+        newRow.push(file.name);
+        collatedData.push(newRow);
+        total++;
+      }
+    });
+    log(`Merged ${file.rows.length} rows from ${file.name}`,'ok');
+  });
+  log(`✅ Done — ${total} rows collated`,'ok');
+  showStats(uploadedFiles.length,total,cols.length);
+  renderPreview();
+}
+
+function fmtCellPlain(v){
+  if(v===null||v===undefined) return '';
+  if(v instanceof Date) return '';
+  if(typeof v === 'number') return String(v);
+  return String(v).trim();
+}
+
+function fmtCell(v){
+  if(v===null||v===undefined) return '';
+  // Date object (shouldn't happen now but just in case)
+  if(v instanceof Date && !isNaN(v)) {
+    const mm = String(v.getMonth() + 1).padStart(2, '0');
+    const dd = String(v.getDate()).padStart(2, '0');
+    const yy = String(v.getFullYear()).slice(-2);
+    return `${mm}/${dd}/${yy}`;
+  }
+  // Excel serial number — convert to MM/DD/YY
+  if(typeof v === 'number' && v > 25000 && v < 60000) {
+    const date = new Date((v - 25569) * 86400000);
+    if(!isNaN(date.getTime())) {
+      const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
+      const dd = String(date.getUTCDate()).padStart(2, '0');
+      const yy = String(date.getUTCFullYear()).slice(-2);
+      return `${mm}/${dd}/${yy}`;
+    }
+  }
+  // Already a string date — pass through
+  return String(v).trim();
+}
+
+function showStats(f,r,c){
+  document.getElementById('statFiles').textContent=f;
+  document.getElementById('statRows').textContent=r;
+  document.getElementById('statCols').textContent=c;
+  document.getElementById('statsBar').style.display='grid';
+}
+
+function renderPreview(){
+  const t=document.getElementById('previewTable');
+  t.innerHTML='';
+  const thead=document.createElement('thead');
+  const hr=document.createElement('tr');
+  finalHeaders.forEach(h=>{const th=document.createElement('th');th.textContent=h;hr.appendChild(th)});
+  thead.appendChild(hr);t.appendChild(thead);
+  const tbody=document.createElement('tbody');
+  collatedData.slice(0,20).forEach(row=>{
+    const tr=document.createElement('tr');
+    row.forEach((cell,i)=>{
+      const td=document.createElement('td');
+      td.textContent=cell||'';
+      if(i===row.length-1) td.className='td-source';
+      td.title=cell||'';
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  t.appendChild(tbody);
+  document.getElementById('previewCard').style.display='block';
+  document.getElementById('previewCard').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function downloadFile(){
+  if(!collatedData.length) return;
+
+  // Find the "Outcome" column index to identify approved cases
+  const outcomeIdx = finalHeaders.findIndex(h => h.toLowerCase().trim() === 'outcome');
+
+  // Copy approved rows (they stay in collated sheet too)
+  const approvedRows = [];
+  collatedData.forEach(row => {
+    const outcomeVal = outcomeIdx > -1 ? String(row[outcomeIdx] || '').trim().toLowerCase() : '';
+    if (outcomeVal === 'approved' || outcomeVal === 'approve') {
+      approvedRows.push(row);
+    }
+  });
+
+  // Build Excel XML Spreadsheet with two proper sheet tabs, bold + blue headers
+  let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+  xml += '<?mso-application progid="Excel.Sheet"?>\n';
+  xml += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"';
+  xml += ' xmlns:o="urn:schemas-microsoft-com:office:office"';
+  xml += ' xmlns:x="urn:schemas-microsoft-com:office:excel"';
+  xml += ' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">\n';
+
+  // Styles
+  xml += '<Styles>\n';
+  xml += '<Style ss:ID="Default" ss:Name="Normal"><Font ss:FontName="Aptos Narrow" ss:Size="10"/></Style>\n';
+  xml += '<Style ss:ID="Header"><Font ss:FontName="Aptos Narrow" ss:Size="11" ss:Bold="1"/><Interior ss:Color="#AACBF8" ss:Pattern="Solid"/><Alignment ss:Horizontal="Center" ss:Vertical="Center"/></Style>\n';
+  xml += '<Style ss:ID="Data"><Font ss:FontName="Aptos Narrow" ss:Size="10"/></Style>\n';
+  xml += '</Styles>\n';
+
+  function buildSheet(name, rows) {
+    let s = '<Worksheet ss:Name="' + escHtml(name) + '">\n<Table>\n';
+    // Header row
+    s += '<Row ss:Height="30">\n';
+    finalHeaders.forEach(h => {
+      s += '<Cell ss:StyleID="Header"><Data ss:Type="String">' + escHtml(h || '') + '</Data></Cell>\n';
+    });
+    s += '</Row>\n';
+    // Data rows
+    rows.forEach(row => {
+      s += '<Row>\n';
+      row.forEach(cell => {
+        const val = cell || '';
+        s += '<Cell ss:StyleID="Data"><Data ss:Type="String">' + escHtml(val) + '</Data></Cell>\n';
+      });
+      s += '</Row>\n';
+    });
+    s += '</Table>\n';
+    s += '<WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel"><FreezePanes/><FrozenNoSplit/><SplitHorizontal>1</SplitHorizontal><TopRowBottomPane>1</TopRowBottomPane></WorksheetOptions>\n';
+    s += '</Worksheet>\n';
+    return s;
+  }
+
+  xml += buildSheet('Collated', collatedData);
+  xml += buildSheet('Approved', []);
+  xml += '</Workbook>';
+
+  const blob = new Blob([xml], {type: 'application/vnd.ms-excel;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const today = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  a.href = url;
+  a.download = 'VAS_Exemption_Tracker_COLLATED_' + today + '.xls';
+  a.click();
+  URL.revokeObjectURL(url);
+  log(`Downloaded: VAS_Exemption_Tracker_COLLATED_${today}.xls — Collated: ${collatedData.length} rows, Approved: ${approvedRows.length} rows`, 'ok');
+}
+
+function escHtml(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function updateBtn(){
+  document.getElementById('collateBtn').disabled=!uploadedFiles.length;
+  document.getElementById('validateCard').style.display=uploadedFiles.length?'block':'none';
+}
+
+function clearAll(){
+  uploadedFiles=[];collatedData=[];finalHeaders=[];
+  document.getElementById('fileList').innerHTML='';
+  document.getElementById('mappingGrid').innerHTML='';
+  document.getElementById('colCard').style.display='none';
+  document.getElementById('validateCard').style.display='none';
+  document.getElementById('validationResults').innerHTML='';
+  document.getElementById('previewCard').style.display='none';
+  document.getElementById('statsBar').style.display='none';
+  document.getElementById('logBox').innerHTML='';
+  document.getElementById('logBox').style.display='none';
+  window._validationOwnerIssues=null;
+  updateBtn();
+}
+
+function log(msg,type='info'){
+  const box=document.getElementById('logBox');
+  box.style.display='block';
+  const line=document.createElement('div');
+  line.className=`log-line${type==='warn'?' log-warn':type==='err'?' log-err':type==='ok'?' log-ok':''}`;
+  const ts=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  line.textContent=`[${ts}] ${msg}`;
+  box.appendChild(line);
+  box.scrollTop=box.scrollHeight;
+}
+
+/* ── VALIDATION & EMAIL NOTIFICATION ── */
+
+// Email domain mapping — adjust this to your org's email pattern
+const EMAIL_DOMAIN = '@amazon.com';
+
+// Owner alias → email mapping (auto-generated from owner column, assumes alias@domain)
+function ownerToEmail(alias) {
+  if (!alias) return '';
+  const clean = String(alias).trim().toLowerCase();
+  // If it already looks like an email, return as-is
+  if (clean.includes('@')) return clean;
+  return clean + EMAIL_DOMAIN;
+}
+
+// Check if a date string matches MM/DD/YY format
+function isValidDateFormat(val) {
+  if (val === null || val === undefined || val === '') return false;
+
+  // If it's a Date object (parsed by SheetJS), it's valid — we format it ourselves
+  if (val instanceof Date && !isNaN(val)) return true;
+
+  const s = String(val).trim();
+
+  // Accept MM/DD/YY or MM/DD/YYYY or M/D/YY etc.
+  const mmddyy = /^\d{1,2}\/\d{1,2}\/\d{2,4}$/;
+  if (mmddyy.test(s)) return true;
+
+  // Also accept DD/MM/YYYY (common in en-GB locales)
+  // We'll be lenient here — the key is catching clearly wrong formats
+  // like "2026-06-04", "June 4", "6.4.2026", plain text, etc.
+
+  return false;
+}
+
+function describeExpectedFormat(val) {
+  const s = String(val).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return 'YYYY-MM-DD (should be MM/DD/YY)';
+  if (/^\d{1,2}\.\d{1,2}\.\d{2,4}$/.test(s)) return 'dot-separated (should be MM/DD/YY)';
+  if (/^[A-Za-z]/.test(s)) return 'text date (should be MM/DD/YY)';
+  if (/^\d+$/.test(s) && s.length === 5) return 'Excel serial number (should be MM/DD/YY)';
+  return 'unexpected format (should be MM/DD/YY)';
+}
+
+function runValidation() {
+  if (!uploadedFiles.length) { alert('Please upload files first.'); return; }
+
+  const results = document.getElementById('validationResults');
+  results.innerHTML = '';
+
+  // Show the validate card
+  document.getElementById('validateCard').style.display = 'block';
+
+  let totalIssues = 0;
+  let missingTaskCount = 0;
+  let badDateCount = 0;
+  const ownerIssues = {}; // { ownerAlias: [ {file, row, type, detail} ] }
+
+  uploadedFiles.forEach(file => {
+    const ownerIdx = file.headers.findIndex(h =>
+      h.toLowerCase().trim() === 'owner'
+    );
+    const taskIdx = file.headers.findIndex(h =>
+      h.toLowerCase().includes('sim') || h.toLowerCase().includes('paragon') || h.toLowerCase().includes('task id')
+    );
+    const dateIdx = file.headers.findIndex(h =>
+      h.toLowerCase().trim() === 'date'
+    );
+
+    file.rows.forEach((row, ri) => {
+      // Skip completely empty rows
+      if (!row.some(c => c !== '' && c !== null && c !== undefined)) return;
+
+      const owner = ownerIdx > -1 ? String(row[ownerIdx] || '').trim() : 'Unknown';
+      const ownerKey = owner || 'Unknown';
+
+      if (!ownerIssues[ownerKey]) ownerIssues[ownerKey] = [];
+
+      // Check 1: Missing Task ID
+      if (taskIdx > -1) {
+        const taskVal = row[taskIdx];
+        if (taskVal === '' || taskVal === null || taskVal === undefined) {
+          ownerIssues[ownerKey].push({
+            file: file.name,
+            row: ri + 2, // +2 because row 1 is header, array is 0-indexed
+            type: 'missing',
+            column: 'SIM ID / Paragon Task ID',
+            detail: 'Task ID is empty'
+          });
+          missingTaskCount++;
+          totalIssues++;
+        }
+      }
+
+      // Check 2: Date format not MM/DD/YY
+      if (dateIdx > -1) {
+        const dateVal = row[dateIdx];
+        if (dateVal !== '' && dateVal !== null && dateVal !== undefined) {
+          if (!isValidDateFormat(dateVal)) {
+            ownerIssues[ownerKey].push({
+              file: file.name,
+              row: ri + 2,
+              type: 'format',
+              column: 'Date',
+              detail: `"${String(dateVal).substring(0, 30)}" — ${describeExpectedFormat(dateVal)}`
+            });
+            badDateCount++;
+            totalIssues++;
+          }
+        }
+      }
+    });
+  });
+
+  // Clean up owners with no issues
+  Object.keys(ownerIssues).forEach(k => {
+    if (ownerIssues[k].length === 0) delete ownerIssues[k];
+  });
+
+  // Render summary
+  let html = '<div class="validation-summary">';
+  html += `<div class="val-stat ${totalIssues === 0 ? 'val-ok' : 'val-err'}"><div class="val-num">${totalIssues}</div><div class="val-label">Total Issues</div></div>`;
+  html += `<div class="val-stat ${missingTaskCount === 0 ? 'val-ok' : 'val-err'}"><div class="val-num">${missingTaskCount}</div><div class="val-label">Missing Task IDs</div></div>`;
+  html += `<div class="val-stat ${badDateCount === 0 ? 'val-ok' : 'val-warn'}"><div class="val-num">${badDateCount}</div><div class="val-label">Bad Date Formats</div></div>`;
+  html += `<div class="val-stat val-ok"><div class="val-num">${Object.keys(ownerIssues).length}</div><div class="val-label">Owners to Notify</div></div>`;
+  html += '</div>';
+
+  if (totalIssues === 0) {
+    html += '<div class="no-issues-banner"><div class="check-icon">✅</div>All rows pass validation. No issues found.</div>';
+    results.innerHTML = html;
+    log('Validation complete — no issues found', 'ok');
+    return;
+  }
+
+  // Email config
+  html += '<div class="email-config">';
+  html += '<label>Email domain:</label>';
+  html += `<input type="text" id="emailDomain" value="${EMAIL_DOMAIN}" placeholder="@company.com" onchange="updateEmailDomain(this.value)"/>`;
+  html += '</div>';
+
+  // Email All buttons — one per error type
+  const ownerList = Object.keys(ownerIssues);
+
+  html += '<div class="btn-row" style="margin-bottom:16px;flex-wrap:wrap">';
+  html += `<button class="btn btn-email-all" onclick="emailAllOwners()">`;
+  html += `<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>`;
+  html += ` Email All ${ownerList.length} Owner(s)</button>`;
+  html += `<button class="btn btn-secondary" onclick="copyAllIssuesText()">📋 Copy Summary to Clipboard</button>`;
+  html += '</div>';
+
+  // Per-owner cards
+  html += '<div class="owner-issues">';
+  ownerList.forEach(owner => {
+    const issues = ownerIssues[owner];
+    const missingCount = issues.filter(i => i.type === 'missing').length;
+    const formatCount = issues.filter(i => i.type === 'format').length;
+    const ownerId = CSS.escape(owner);
+
+    html += `<div class="owner-card" data-owner="${escHtml(owner)}">`;
+    html += `<div class="owner-card-header" onclick="toggleOwnerDetail('${ownerId}')">`;
+    html += `<span class="owner-name">👤 ${escHtml(owner)}</span>`;
+    html += '<div class="owner-badges">';
+    if (missingCount > 0) html += `<span class="owner-badge owner-badge-err">${missingCount} missing Task ID</span>`;
+    if (formatCount > 0) html += `<span class="owner-badge owner-badge-warn">${formatCount} bad date format</span>`;
+    html += '</div></div>';
+
+    html += `<div class="owner-detail" id="detail-${ownerId}">`;
+    html += '<table class="issue-table"><thead><tr><th>File</th><th>Row</th><th>Issue</th><th>Detail</th></tr></thead><tbody>';
+    issues.forEach(iss => {
+      const typeClass = iss.type === 'missing' ? 'issue-type-missing' : 'issue-type-format';
+      const typeLabel = iss.type === 'missing' ? '❌ Missing' : '⚠️ Wrong Format';
+      html += `<tr><td>${escHtml(iss.file)}</td><td>${iss.row}</td><td class="${typeClass}">${typeLabel}</td><td>${escHtml(iss.detail)}</td></tr>`;
+    });
+    html += '</tbody></table>';
+
+    html += `<div class="btn-row">`;
+    html += `<button class="btn btn-email" onclick="emailOwnerAll('${escHtml(owner)}')">`;
+    html += `<svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>`;
+    html += ` Email ${escHtml(owner)}</button>`;
+    html += `</div>`;
+
+    html += '</div></div>';
+  });
+  html += '</div>';
+
+  results.innerHTML = html;
+
+  // Store for email functions
+  window._validationOwnerIssues = ownerIssues;
+
+  log(`Validation complete — ${totalIssues} issue(s) found across ${ownerList.length} owner(s)`, totalIssues > 0 ? 'warn' : 'ok');
+}
+
+function toggleOwnerDetail(ownerId) {
+  const el = document.getElementById('detail-' + ownerId);
+  if (el) el.classList.toggle('open');
+}
+
+function updateEmailDomain(val) {
+  // No-op, we read it dynamically from the input
+}
+
+function getEmailDomain() {
+  const input = document.getElementById('emailDomain');
+  return input ? input.value.trim() : EMAIL_DOMAIN;
+}
+
+function buildEmailBody(owner, issues) {
+  let body = `Hi ${owner},\n\n`;
+  body += `This is a reminder regarding your VAS Exemption/Extension Tracker entries. The following issues were found during validation:\n\n`;
+
+  const missing = issues.filter(i => i.type === 'missing');
+  const format = issues.filter(i => i.type === 'format');
+
+  if (missing.length > 0) {
+    body += `MISSING TASK ID (${missing.length} row(s)):\n`;
+    missing.forEach(i => {
+      body += `  • File: ${i.file}, Row ${i.row} — ${i.detail}\n`;
+    });
+    body += '\n';
+  }
+
+  if (format.length > 0) {
+    body += `INCORRECT DATE FORMAT (${format.length} row(s)):\n`;
+    body += `  Expected format: MM/DD/YY\n`;
+    format.forEach(i => {
+      body += `  • File: ${i.file}, Row ${i.row} — ${i.detail}\n`;
+    });
+    body += '\n';
+  }
+
+  body += `Please update your tracker file and resubmit.\n\nThank you!`;
+  return body;
+}
+
+// Open a single email draft for one owner with all their issues
+function emailOwnerAll(owner) {
+  const issues = window._validationOwnerIssues && window._validationOwnerIssues[owner];
+  if (!issues || !issues.length) return;
+
+  const domain = getEmailDomain();
+  const email = owner.includes('@') ? owner : owner.toLowerCase().trim() + domain;
+  const subject = 'Action Required: VAS Exemption Tracker — Data Issues Found';
+  const body = buildEmailBody(owner, issues);
+
+  const mailto = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.open(mailto, '_blank');
+  log(`Opened email draft for ${owner} (${email})`, 'ok');
+}
+
+// Open separate email drafts — one per owner, each with all their issues
+function emailAllOwners() {
+  const ownerIssues = window._validationOwnerIssues;
+  if (!ownerIssues) return;
+
+  const domain = getEmailDomain();
+  const subject = 'Action Required: VAS Exemption Tracker — Data Issues Found';
+
+  let count = 0;
+  Object.keys(ownerIssues).forEach((owner, idx) => {
+    const issues = ownerIssues[owner];
+    if (!issues.length) return;
+
+    const email = owner.includes('@') ? owner : owner.toLowerCase().trim() + domain;
+    const body = buildEmailBody(owner, issues);
+    const mailto = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+    // Stagger window.open calls so the browser doesn't block popups
+    setTimeout(() => {
+      window.open(mailto, '_blank');
+    }, idx * 600);
+    count++;
+  });
+
+  log(`Opening ${count} individual email draft(s)`, 'ok');
+}
+
+function copyAllIssuesText() {
+  const ownerIssues = window._validationOwnerIssues;
+  if (!ownerIssues) return;
+
+  let text = 'VAS Exemption Tracker — Validation Issues Summary\n';
+  text += '='.repeat(50) + '\n\n';
+
+  Object.keys(ownerIssues).forEach(owner => {
+    const issues = ownerIssues[owner];
+    text += `Owner: ${owner}\n`;
+    text += '-'.repeat(30) + '\n';
+    issues.forEach(i => {
+      const typeLabel = i.type === 'missing' ? 'Missing Task ID' : 'Wrong Date Format';
+      text += `  Row ${i.row} | ${typeLabel} | File: ${i.file} | ${i.detail}\n`;
+    });
+    text += '\n';
+  });
+
+  navigator.clipboard.writeText(text).then(() => {
+    log('Copied validation summary to clipboard', 'ok');
+    alert('Validation summary copied to clipboard!');
+  }).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    log('Copied validation summary to clipboard (fallback)', 'ok');
+    alert('Validation summary copied to clipboard!');
+  });
+}
+</script>
+</body>
+</html>
